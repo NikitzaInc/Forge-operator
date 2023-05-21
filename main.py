@@ -21,7 +21,6 @@
 # If blacksmiths accept the order, they can reject the order if they face some troubles with it or change the cost of the order or, when order is ready, they can tell customer that his order is ready
 # User gets messages from the bot in DM about his order
 
-
 import traceback
 from discord import app_commands
 from discord.utils import get
