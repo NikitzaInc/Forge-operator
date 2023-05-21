@@ -1,9 +1,9 @@
 # Forge-operator
 Small discord bot i've made for my friend's server on python.
 Feel free to copy my code and use it for your projects! 
-I wouldn't have been able to make this bot without the help of github of Martine discord bot, great thanks to https://github.com/MartineBot and PredaaA
+I wouldn't have been able to make this bot without the help of github of [Martine](https://github.com/MartineBot) discord bot, great thanks to it
 
-The bot works with discord interaction and can give you examples on such topics as:
+**The bot works with discord interaction and can give you examples on such topics as:**
 - responding on an interaction
 - how to work with slash commands
 - how to work with discord.ui.view, discord.ui.button, discord.ui.select, discord.ui.modal
