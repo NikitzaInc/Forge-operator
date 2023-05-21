@@ -13,14 +13,18 @@
 # 2 - "OrderNetherite" which let user choose what items he wants to be made of netherite
 # 3 - "OrderComment" which let user add a comment to his order
 # 4 - "OrderSubmit" which let user save his order and send it to the blacksmiths
+# The bot keeps in his memory up to 10 orders, next ones overwrite the previous ones.
 # The bot doesn't allow two players to make orders at the same time
 # When order is sent to blacksmiths, they can accept the order or reject the order
-# If they accept the order, they can reject the order if they face some troubles with it or, when order is ready, they can tell user that his order is ready
+# Blacksmith must submit the basic cost of the order using special button, bot calculate the real cost using special discount system
+# This cost is added to customer's points. Bot saves usernames and points of all customers in special file (customers.txt)   
+# If blacksmiths accept the order, they can reject the order if they face some troubles with it or change the cost of the order or, when order is ready, they can tell customer that his order is ready
 # User gets messages from the bot in DM about his order
-# The bot keeps in his memory up to 10 orders, next ones overwrite the previous ones.
+
 
 import traceback
 from discord import app_commands
+from discord.utils import get
 import discord
 from threading import Timer
      
@@ -29,6 +33,8 @@ MY_GUILD = discord.Object(id=your_guild_id)
 
 class MyClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
+        intents.guilds = True
+        intents.members = True
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
 
@@ -43,6 +49,7 @@ client = MyClient(intents=intents)
 @client.tree.command()
 
 @app_commands.describe(
+    #These two lines are the values those admin must put in his command and their descriptions
     channel_orders="Задайте канал, в котором покупатели смогут оставить свой заказ.",
     channel_orderlist="Задайте канал, в котором кузнецы смогут видеть и принимать поступившие заказы.",
 
@@ -98,18 +105,25 @@ shieldEnchants = [""]
 scissorsEnchants = [""]
 
 valueNumber = 0
+# We have to use user and member simultaneously because to get information about user we must use discord.User and to apply roles to user we must use discord.Member
 orderIDname = [discord.User,discord.User,discord.User,discord.User,discord.User,discord.User,discord.User,discord.User,discord.User,discord.User]
+orderIDmember = [discord.Member,discord.Member,discord.Member,discord.Member,discord.Member,discord.Member,discord.Member,discord.Member,discord.Member,discord.Member]
 orderIDnumber = [0,0,0,0,0,0,0,0,0,0]
 
+orderIDcost = [0,0,0,0,0,0,0,0,0,0]
+orderIDpoints = [0,0,0,0,0,0,0,0,0,0]
 
-# After each order we have to clear values of all variables and lists
+
+# After each order we have to clear values of all variables and lists used in making order
 # I understand that my code sometimes looks very goofy, but I don't understand how to make some things better
-async def clearValues():
+def clearValues():
     global orderCommentSubmit
     global netherite
 
     global orderValues
     global netheriteValues
+
+    global enchants
 
     global trezubEnchants
     global swordEnchants
@@ -134,7 +148,7 @@ async def clearValues():
 
     orderValues = ["-"]
     netheriteValues = ["-"]
-    
+
     trezubEnchants = ["-"]
     swordEnchants = ["-"]
     crossbowEnchants = ["-"]
@@ -154,12 +168,11 @@ async def clearValues():
     scissorsEnchants = ["-"]
 
     
-
 # If someone started making an order and didn't finish within 10 minutes, bot should clean all the values and lists and allow another user make his order
-async def timeout():
+def timeout():
     global makingOrder
     makingOrder = False
-    await clearValues()
+    clearValues()
     print("Order timed out!")
     print("-------")
 
@@ -177,15 +190,17 @@ class StartOrder(discord.ui.Button):
         embed1.add_field(name="Материал товара",value="***Все предметы брони, мечи и инструменты по умолчанию делаются алмазными.*** Если вас интересует незеритовый аналог товара, выберите его, нажав на соответствующую кнопку. Если же вас интересует иной материал, пожалуйста опишите это в комментарии к заказу.",inline=False)
         embed1.add_field(name="Добавить комментарий к заказу",value="Также можно добавить комментарий к заказу. Укажите все подробности заказа, например, место доставки, особенности материала или чар.",inline=False)
         embed1.add_field(name="Выбранные товары:",value="-",inline=True)
+        
 
         embedCantStartOrder = discord.Embed(title=":clock2: В данный момент бот занят, пожалуйста попробуйте позже!",color=discord.Colour.from_str('0x2366c4'),)
         global makingOrder
         view=OrderView()
 
         # The bot doesn't allow two players to make orders at the same time
+        # If someone is making order (makingOrder = True) it responds with a "The bot is currently being used, please try again later!" message
         if makingOrder == False:
             await interaction.response.send_message(embed=embed1,view=view,ephemeral=True)
-            await clearValues()
+            clearValues()
             
             makingOrder = True
             print(interaction.user.name+" is making new order!")
@@ -193,13 +208,10 @@ class StartOrder(discord.ui.Button):
             t = Timer(600,timeout)
             t.start()
 
-         
         else:
             await interaction.response.send_message(embed=embedCantStartOrder,ephemeral=True)
             print(interaction.user.name+" failed to order")
             print("-------")
-
-
 
 
 
@@ -243,93 +255,55 @@ class OrderSelect(discord.ui.Select):
 
         global orderValues
         orderValues = self.values
-        
-        global trezub
-        global sword
-        global crossbow
-        global bow
-        global axe
-        global pickaxe
-        global shovel
-        global hoe
-        global fishingRod
-        global boots
-        global turtle
-        global helmet
-        global chestplate
-        global leggings
-        global flintNsteel
-        global shield
-        global scissors
 
-        # These variables contain data about which items are selected by the user.
-        trezub = False
-        sword = False
-        crossbow = False
-        bow = False
-        axe = False
-        pickaxe = False
-        shovel = False
-        hoe = False
-        fishingRod = False
-        boots = False
-        turtle = False
-        helmet = False
-        chestplate = False
-        leggings = False
-        flintNsteel = False
-        shield = False
-        scissors = False
+        # This list contains data about which items are selected by the user.
+        global enchants
+        enchants = [False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False,False]
         
-
         i=0
-
         print("Items chosen by "+ interaction.user.name +":")
         while i < len(self.values):
             print(self.values[i])
             if self.values[i] == "Трезубец":
-                trezub = True
+                enchants[0] = True
             if self.values[i] == "Меч":
-                sword = True
+                enchants[1]  = True
             if self.values[i] == "Арбалет":
-                crossbow = True
+                enchants[2]  = True
             if self.values[i] == "Лук":
-                bow = True
+                enchants[3]  = True
             if self.values[i] == "Топор":
-                axe = True
+                enchants[4]  = True
             if self.values[i] == "Кирка":
-                pickaxe = True
+                enchants[5]  = True
             if self.values[i] == "Лопата":
-                shovel = True
+                enchants[6]  = True
             if self.values[i] == "Мотыга":
-                hoe = True
+                enchants[7]  = True
             if self.values[i] == "Удочка":
-                fishingRod = True
+                enchants[8]  = True
             if self.values[i] == "Черепаший панцирь":
-                turtle = True
+                enchants[9]  = True
             if self.values[i] == "Шлем":
-                helmet = True
+                enchants[10]  = True
             if self.values[i] == "Нагрудник":
-                chestplate = True
+                enchants[11]  = True
             if self.values[i] == "Поножи":
-                leggings = True
+                enchants[12]  = True
             if self.values[i] == "Ботинки":
-                boots = True
+                enchants[13]  = True
             if self.values[i] == "Зажигалка":
-                flintNsteel = True
+                enchants[14]  = True
             if self.values[i] == "Щит":
-                shield = True
+                enchants[15]  = True
             if self.values[i] == "Ножницы":
-                scissors = True
+                enchants[16]  = True
 
             i += 1
         print("-------")
 
 
-
-
-
-# Selection menu where users can choose what items should br done with netherite
+# Selection menu where users can choose what items should be done with netherite
 class OrderSelectNetherite(discord.ui.Select):
     def __init__(self):
         options=[
@@ -351,6 +325,10 @@ class OrderSelectNetherite(discord.ui.Select):
         global netherite
         netheriteValues = self.values
         netherite = True
+
+        print("Netherite ones chosen by "+ interaction.user.name +":")
+        print(netheriteValues)
+        print("-------")
 
         embedEdit = discord.Embed(title="Выберите товары, которые необходимо сделать из незерита!",color=discord.Colour.from_str('0x2366c4')) 
         embedEdit.add_field(name="Из незерита будут сделаны:",value=self.values,inline=False) 
@@ -381,13 +359,13 @@ class SelectTrezubEnchantments(discord.ui.Select):
             trezubEnchants = self.values
 
             trezubEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
-            if trezub == True:
+            if enchants[0] == True:
                 trezubEmbed.add_field(name="Зачарования трезубца:", value=trezubEnchants, inline=False)
-            if sword == True:
+            if enchants[1]  == True:
                 trezubEmbed.add_field(name="Зачарования меча:", value=swordEnchants, inline=False)
-            if crossbow == True:
+            if enchants[2]  == True:
                 trezubEmbed.add_field(name="Зачарования арбалета:", value=crossbowEnchants, inline=False)
-            if bow == True:
+            if enchants[3]  == True:
                 trezubEmbed.add_field(name="Зачарования лука:", value=bowEnchants, inline=False)
             
             await interaction.response.defer(ephemeral=True)
@@ -415,13 +393,13 @@ class SelectSwordEnchantments(discord.ui.Select):
             swordEnchants = self.values
             
             swordEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
-            if trezub == True:
+            if enchants[0] == True:
                 swordEmbed.add_field(name="Зачарования трезубца:", value=trezubEnchants, inline=False)
-            if sword == True:
+            if enchants[1]  == True:
                 swordEmbed.add_field(name="Зачарования меча:", value=swordEnchants, inline=False)
-            if crossbow == True:
+            if enchants[2]  == True:
                 swordEmbed.add_field(name="Зачарования арбалета:", value=crossbowEnchants, inline=False)
-            if bow == True:
+            if enchants[3]  == True:
                 swordEmbed.add_field(name="Зачарования лука:", value=bowEnchants, inline=False)
             
             await interaction.response.defer(ephemeral=True)
@@ -445,13 +423,13 @@ class SelectCrossbowEnchantments(discord.ui.Select):
             crossbowEnchants = self.values
 
             crossbowEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
-            if trezub == True:
+            if enchants[0] == True:
                 crossbowEmbed.add_field(name="Зачарования трезубца:", value=trezubEnchants, inline=False)
-            if sword == True:
+            if enchants[1]  == True:
                 crossbowEmbed.add_field(name="Зачарования меча:", value=swordEnchants, inline=False)
-            if crossbow == True:
+            if enchants[2]  == True:
                 crossbowEmbed.add_field(name="Зачарования арбалета:", value=crossbowEnchants, inline=False)
-            if bow == True:
+            if enchants[3]  == True:
                 crossbowEmbed.add_field(name="Зачарования лука:", value=bowEnchants, inline=False)
             
             await interaction.response.defer(ephemeral=True)
@@ -476,18 +454,17 @@ class SelectBowEnchantments(discord.ui.Select):
         bowEnchants = self.values
 
         bowEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
-        if trezub == True:
+        if enchants[0] == True:
             bowEmbed.add_field(name="Зачарования трезубца:", value=trezubEnchants, inline=False)
-        if sword == True:
+        if enchants[1]  == True:
             bowEmbed.add_field(name="Зачарования меча:", value=swordEnchants, inline=False)
-        if crossbow == True:
+        if enchants[2]  == True:
             bowEmbed.add_field(name="Зачарования арбалета:", value=crossbowEnchants, inline=False)
-        if bow == True:
+        if enchants[3]  == True:
             bowEmbed.add_field(name="Зачарования лука:", value=bowEnchants, inline=False)
             
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=bowEmbed)
-
 
 # Axe Enchantments
 class SelectAxeEnchantments(discord.ui.Select):
@@ -510,20 +487,19 @@ class SelectAxeEnchantments(discord.ui.Select):
         axeEnchants = self.values
         axeEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if axe == True:
+        if enchants[4]  == True:
             axeEmbed.add_field(name="Зачарования топора:", value=axeEnchants, inline=False)
-        if pickaxe == True:
+        if enchants[5]  == True:
             axeEmbed.add_field(name="Зачарования кирки:", value=pickaxeEnchants, inline=False)
-        if shovel == True:
+        if enchants[6]  == True:
             axeEmbed.add_field(name="Зачарования лопаты:", value=shovelEnchants, inline=False)
-        if hoe == True:
+        if enchants[7]  == True:
             axeEmbed.add_field(name="Зачарования мотыги:", value=hoeEnchants, inline=False)
-        if fishingRod == True:
+        if enchants[8]  == True:
             axeEmbed.add_field(name="Зачарования удочки:", value=fishingRodEnchants, inline=False)
 
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=axeEmbed)
-
 
 # Pickaxe Enchantments
 class SelectPickaxeEnchantments(discord.ui.Select):
@@ -543,20 +519,19 @@ class SelectPickaxeEnchantments(discord.ui.Select):
         pickaxeEnchants = self.values
         pickaxeEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if axe == True:
+        if enchants[4]  == True:
             pickaxeEmbed.add_field(name="Зачарования топора:", value=axeEnchants, inline=False)
-        if pickaxe == True:
+        if enchants[5]  == True:
             pickaxeEmbed.add_field(name="Зачарования кирки:", value=pickaxeEnchants, inline=False)
-        if shovel == True:
+        if enchants[6]  == True:
             pickaxeEmbed.add_field(name="Зачарования лопаты:", value=shovelEnchants, inline=False)
-        if hoe == True:
+        if enchants[7]  == True:
             pickaxeEmbed.add_field(name="Зачарования мотыги:", value=hoeEnchants, inline=False)
-        if fishingRod == True:
+        if enchants[8]  == True:
             pickaxeEmbed.add_field(name="Зачарования удочки:", value=fishingRodEnchants, inline=False)
 
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=pickaxeEmbed)
-
 
 # Shovel Enchantments
 class SelectShovelEnchantments(discord.ui.Select):
@@ -576,20 +551,19 @@ class SelectShovelEnchantments(discord.ui.Select):
         shovelEnchants = self.values
         shovelEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if axe == True:
+        if enchants[4]  == True:
             shovelEmbed.add_field(name="Зачарования топора:", value=axeEnchants, inline=False)
-        if pickaxe == True:
+        if enchants[5]  == True:
             shovelEmbed.add_field(name="Зачарования кирки:", value=pickaxeEnchants, inline=False)
-        if shovel == True:
+        if enchants[6]  == True:
             shovelEmbed.add_field(name="Зачарования лопаты:", value=shovelEnchants, inline=False)
-        if hoe == True:
+        if enchants[7]  == True:
             shovelEmbed.add_field(name="Зачарования мотыги:", value=hoeEnchants, inline=False)
-        if fishingRod == True:
+        if enchants[8]  == True:
             shovelEmbed.add_field(name="Зачарования удочки:", value=fishingRodEnchants, inline=False)
 
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=shovelEmbed)
-
 
 # Hoe Enchantments
 class SelectHoeEnchantments(discord.ui.Select):
@@ -609,21 +583,20 @@ class SelectHoeEnchantments(discord.ui.Select):
         hoeEnchants = self.values
         hoeEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if axe == True:
+        if enchants[4]  == True:
             hoeEmbed.add_field(name="Зачарования топора:", value=axeEnchants, inline=False)
-        if pickaxe == True:
+        if enchants[5]  == True:
             hoeEmbed.add_field(name="Зачарования кирки:", value=pickaxeEnchants, inline=False)
-        if shovel == True:
+        if enchants[6]  == True:
             hoeEmbed.add_field(name="Зачарования лопаты:", value=shovelEnchants, inline=False)
-        if hoe == True:
+        if enchants[7]  == True:
             hoeEmbed.add_field(name="Зачарования мотыги:", value=hoeEnchants, inline=False)
-        if fishingRod == True:
+        if enchants[8]  == True:
             hoeEmbed.add_field(name="Зачарования удочки:", value=fishingRodEnchants, inline=False)
 
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=hoeEmbed)
         
-
 # FishingRod Enchantments
 class SelectFishingRodEnchantments(discord.ui.Select):
     def __init__(self):
@@ -641,20 +614,19 @@ class SelectFishingRodEnchantments(discord.ui.Select):
         fishingRodEnchants = self.values
         fishingRodEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if axe == True:
+        if enchants[4]  == True:
             fishingRodEmbed.add_field(name="Зачарования топора:", value=axeEnchants, inline=False)
-        if pickaxe == True:
+        if enchants[5]  == True:
             fishingRodEmbed.add_field(name="Зачарования кирки:", value=pickaxeEnchants, inline=False)
-        if shovel == True:
+        if enchants[6]  == True:
             fishingRodEmbed.add_field(name="Зачарования лопаты:", value=shovelEnchants, inline=False)
-        if hoe == True:
+        if enchants[7]  == True:
             fishingRodEmbed.add_field(name="Зачарования мотыги:", value=hoeEnchants, inline=False)
-        if fishingRod == True:
+        if enchants[8]  == True:
             fishingRodEmbed.add_field(name="Зачарования удочки:", value=fishingRodEnchants, inline=False)
 
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=fishingRodEmbed)
-
 
 # Boots Enchantments
 class SelectBootsEnchantments(discord.ui.Select):
@@ -681,24 +653,23 @@ class SelectBootsEnchantments(discord.ui.Select):
         bootsEnchants = self.values
         bootsEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if boots == True:
+        if enchants[13]  == True:
             bootsEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
-        if turtle == True:
+        if enchants[9]  == True:
             bootsEmbed.add_field(name="Зачарования черепашьего панциря:", value=turtleEnchants, inline=False)
-        if helmet == True:
+        if enchants[10]  == True:
             bootsEmbed.add_field(name="Зачарования шлема:", value=helmetEnchants, inline=False)
-        if chestplate == True:
+        if enchants[11]  == True:
             bootsEmbed.add_field(name="Зачарования нагрудника:", value=chestplateEnchants, inline=False)
-        if leggings == True:
+        if enchants[12]  == True:
             bootsEmbed.add_field(name="Зачарования понож:", value=leggingsEnchants, inline=False)
-        if boots == True:
+        if enchants[13]  == True:
             bootsEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
         
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=bootsEmbed)
 
-
-# Turtle helmet Enchantments
+# Turtle Enchantments
 class SelectTurtleEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
@@ -721,17 +692,17 @@ class SelectTurtleEnchantments(discord.ui.Select):
         turtleEnchants = self.values
         turtleEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if boots == True:
+        if enchants[13]  == True:
             turtleEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
-        if turtle == True:
+        if enchants[9]  == True:
             turtleEmbed.add_field(name="Зачарования черепашьего панциря:", value=turtleEnchants, inline=False)
-        if helmet == True:
+        if enchants[10]  == True:
             turtleEmbed.add_field(name="Зачарования шлема:", value=helmetEnchants, inline=False)
-        if chestplate == True:
+        if enchants[11]  == True:
             turtleEmbed.add_field(name="Зачарования нагрудника:", value=chestplateEnchants, inline=False)
-        if leggings == True:
+        if enchants[12]  == True:
             turtleEmbed.add_field(name="Зачарования понож:", value=leggingsEnchants, inline=False)
-        if boots == True:
+        if enchants[13]  == True:
             turtleEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
         
         await interaction.response.defer(ephemeral=True)
@@ -760,15 +731,15 @@ class SelectHelmetEnchantments(discord.ui.Select):
         helmetEnchants = self.values
         helmetEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if turtle == True:
+        if enchants[9]  == True:
             helmetEmbed.add_field(name="Зачарования черепашьего панциря:", value=turtleEnchants, inline=False)
-        if helmet == True:
+        if enchants[10]  == True:
             helmetEmbed.add_field(name="Зачарования шлема:", value=helmetEnchants, inline=False)
-        if chestplate == True:
+        if enchants[11]  == True:
             helmetEmbed.add_field(name="Зачарования нагрудника:", value=chestplateEnchants, inline=False)
-        if leggings == True:
+        if enchants[12]  == True:
             helmetEmbed.add_field(name="Зачарования понож:", value=leggingsEnchants, inline=False)
-        if boots == True:
+        if enchants[13]  == True:
             helmetEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
         
         await interaction.response.defer(ephemeral=True)
@@ -795,20 +766,19 @@ class SelectChestplateEnchantments(discord.ui.Select):
         chestplateEnchants = self.values
         chestplateEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if turtle == True:
+        if enchants[9]  == True:
             chestplateEmbed.add_field(name="Зачарования черепашьего панциря:", value=turtleEnchants, inline=False)
-        if helmet == True:
+        if enchants[10]  == True:
             chestplateEmbed.add_field(name="Зачарования шлема:", value=helmetEnchants, inline=False)
-        if chestplate == True:
+        if enchants[11]  == True:
             chestplateEmbed.add_field(name="Зачарования нагрудника:", value=chestplateEnchants, inline=False)
-        if leggings == True:
+        if enchants[12]  == True:
             chestplateEmbed.add_field(name="Зачарования понож:", value=leggingsEnchants, inline=False)
-        if boots == True:
+        if enchants[13]  == True:
             chestplateEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
         
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=chestplateEmbed)
-
 
 # Leggings Enchantments
 class SelectLeggingsEnchantments(discord.ui.Select):
@@ -832,15 +802,15 @@ class SelectLeggingsEnchantments(discord.ui.Select):
         leggingsEnchants = self.values
         leggingsEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if turtle == True:
+        if enchants[9]  == True:
             leggingsEmbed.add_field(name="Зачарования черепашьего панциря:", value=turtleEnchants, inline=False)
-        if helmet == True:
+        if enchants[10]  == True:
             leggingsEmbed.add_field(name="Зачарования шлема:", value=helmetEnchants, inline=False)
-        if chestplate == True:
+        if enchants[11]  == True:
             leggingsEmbed.add_field(name="Зачарования нагрудника:", value=chestplateEnchants, inline=False)
-        if leggings == True:
+        if enchants[12]  == True:
             leggingsEmbed.add_field(name="Зачарования понож:", value=leggingsEnchants, inline=False)
-        if boots == True:
+        if enchants[13]  == True:
             leggingsEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
         
         await interaction.response.defer(ephemeral=True)
@@ -861,11 +831,11 @@ class SelectFlintNsteelEnchantments(discord.ui.Select):
         flintNsteelEnchants = self.values
         flintNsteelEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if flintNsteel == True:
+        if enchants[14]  == True:
             flintNsteelEmbed.add_field(name="Зачарования зажигалки:", value=flintNsteelEnchants, inline=False)
-        if shield == True:
+        if enchants[15]  == True:
             flintNsteelEmbed.add_field(name="Зачарования щита:", value=shieldEnchants, inline=False)
-        if scissors == True:
+        if enchants[16]  == True:
             flintNsteelEmbed.add_field(name="Зачарования ножниц:", value=scissorsEnchants, inline=False)
 
         await interaction.response.defer(ephemeral=True)
@@ -886,11 +856,11 @@ class SelectShieldEnchantments(discord.ui.Select):
         shieldEnchants = self.values
         shieldEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if flintNsteel == True:
+        if enchants[14]  == True:
             shieldEmbed.add_field(name="Зачарования зажигалки:", value=flintNsteelEnchants, inline=False)
-        if shield == True:
+        if enchants[15]  == True:
             shieldEmbed.add_field(name="Зачарования щита:", value=shieldEnchants, inline=False)
-        if scissors == True:
+        if enchants[16]  == True:
             shieldEmbed.add_field(name="Зачарования ножниц:", value=scissorsEnchants, inline=False)
 
         await interaction.response.defer(ephemeral=True)
@@ -912,32 +882,53 @@ class SelectScissorsEnchantments(discord.ui.Select):
         scissorsEnchants = self.values
         scissorsEmbed = discord.Embed(title="Выбранные зачарования:", color=discord.Colour.from_str('0x2366c4'))
 
-        if flintNsteel == True:
+        if enchants[14]  == True:
             scissorsEmbed.add_field(name="Зачарования зажигалки:", value=flintNsteelEnchants, inline=False)
-        if shield == True:
+        if enchants[15]  == True:
             scissorsEmbed.add_field(name="Зачарования щита:", value=shieldEnchants, inline=False)
-        if scissors == True:
+        if enchants[16]  == True:
             scissorsEmbed.add_field(name="Зачарования ножниц:", value=scissorsEnchants, inline=False)
 
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(embed=scissorsEmbed)
 
-
 # Buttons
 
 # Main order menu
-# When we press "Submit order" button, bot sends 2 messages with all information about order: First message is sent in the "channel_orders" to the client, second one is sent to the blacksmiths in the "channel_orerlist"
+# When we press "Submit order" button, bot sends 2 messages with all information about order: First message is sent in the "channel_orders" to the client, 
+# second one is sent to the blacksmiths in the "channel_orerlist".
+# Bot also saves id of response message and the user, that made the order in 2 lists (orderIDnumber and orderIDname).
+# These two we will use to match user and his order later
 class OrderSubmit(discord.ui.Button):
     def __init__(self):
         super().__init__(style=discord.ButtonStyle.green, label="Подтвердить заказ", custom_id="orderSubmit")
 
     async def callback(self, interaction:discord.Interaction): 
+
+        customerRole = get(interaction.user.guild.roles, name="Покупатель")
+        await interaction.user.add_roles(customerRole)
+
+        #Some discount roles we will use later (lines 1339-1351)
+        global DiscountRole_1
+        global DiscountRole_2
+        global DiscountRole_3
+        global DiscountRole_4
+        global DiscountRole_5
+        DiscountRole_1 = get(interaction.user.guild.roles, name="Проходимец")
+        DiscountRole_2 = get(interaction.user.guild.roles, name="Частый гость")
+        DiscountRole_3 = get(interaction.user.guild.roles, name="Местный")
+        DiscountRole_4 = get(interaction.user.guild.roles, name="Родное личико")
+        DiscountRole_5 = get(interaction.user.guild.roles, name="В доску свой")
+
+
         submitEmbed = discord.Embed(title="Ваш заказ составлен и отправлен кузнецам!", description="Cпасибо за вашу покупку! Когда ваш заказ будет готов, вам сообщат в личные сообщения.", color=discord.Colour.from_str('0x2366c4'))
         tinkerEmbed = discord.Embed(title="Новый заказ!", color=discord.Colour.from_str('0x2366c4'), description="Заказчик: "+interaction.user.mention)
         
         submitEmbed.add_field(name="Выбранные товары:", value=orderValues, inline=False)
         tinkerEmbed.add_field(name="Выбранные товары:", value=orderValues, inline=False)
 
+            
+            
 
         print(interaction.user.name+" made a new order!")
 
@@ -947,71 +938,71 @@ class OrderSubmit(discord.ui.Button):
             tinkerEmbed.add_field(name="Из незерита должны быть сделаны:", value=netheriteValues, inline=False)
             print("Netherite ones: "+netheriteValues.__str__())
         
-        if trezub == True:
+        if enchants[0] == True:
             submitEmbed.add_field(name="Зачарования трезубца:", value=trezubEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования трезубца:", value=trezubEnchants, inline=False)
             print("Trident enchantments: "+trezubEnchants.__str__())
-        if sword == True:
+        if enchants[1]  == True:
             submitEmbed.add_field(name="Зачарования меча:", value=swordEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования меча:", value=swordEnchants, inline=False)
             print("Sword enchantments: "+swordEnchants.__str__())
-        if crossbow == True:
+        if enchants[2]  == True:
             submitEmbed.add_field(name="Зачарования арбалета:", value=crossbowEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования арбалета:", value=crossbowEnchants, inline=False)
             print("Crossbow enchantments: "+crossbowEnchants.__str__())
-        if bow == True:
+        if enchants[3]  == True:
             submitEmbed.add_field(name="Зачарования лука:", value=bowEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования лука:", value=bowEnchants, inline=False)
             print("Bow enchantments: "+bowEnchants.__str__())
-        if axe == True:
+        if enchants[4]  == True:
             submitEmbed.add_field(name="Зачарования топора:", value=axeEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования топора:", value=axeEnchants, inline=False)
             print("Axe enchantments: "+axeEnchants.__str__())
-        if pickaxe == True:
+        if enchants[5]  == True:
             submitEmbed.add_field(name="Зачарования кирки:", value=pickaxeEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования кирки:", value=pickaxeEnchants, inline=False)
             print("Pickaxe enchantments: "+pickaxeEnchants.__str__())
-        if shovel == True:
+        if enchants[6]  == True:
             submitEmbed.add_field(name="Зачарования лопаты:", value=shovelEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования лопаты:", value=shovelEnchants, inline=False)
             print("Shovel enchantments: "+shovelEnchants.__str__())
-        if hoe == True:
+        if enchants[7]  == True:
             submitEmbed.add_field(name="Зачарования мотыги:", value=hoeEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования мотыги:", value=hoeEnchants, inline=False)
             print("Hoe enchantments: "+hoeEnchants.__str__())
-        if fishingRod == True:
+        if enchants[8]  == True:
             submitEmbed.add_field(name="Зачарования удочки:", value=fishingRodEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования удочки:", value=fishingRodEnchants, inline=False)
             print("Fishing rod enchantments: "+fishingRodEnchants.__str__())
-        if turtle == True:
+        if enchants[9]  == True:
             submitEmbed.add_field(name="Зачарования черепашьего панциря:", value=turtleEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования черепашьего панциря:", value=turtleEnchants, inline=False)
-            print("Turtle helmet enchantments: "+turtleEnchants.__str__())
-        if helmet == True:
+            print("Turtle enchants[10]  enchantments: "+turtleEnchants.__str__())
+        if enchants[10]  == True:
             submitEmbed.add_field(name="Зачарования шлема:", value=helmetEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования шлема:", value=helmetEnchants, inline=False)
             print("Helmet enchantments: "+helmetEnchants.__str__())
-        if chestplate == True:
+        if enchants[11]  == True:
             submitEmbed.add_field(name="Зачарования нагрудника:", value=chestplateEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования нагрудника:", value=chestplateEnchants, inline=False)
             print("Chestplate enchantments: "+chestplateEnchants.__str__())
-        if leggings == True:
+        if enchants[12]  == True:
             submitEmbed.add_field(name="Зачарования понож:", value=leggingsEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования понож:", value=leggingsEnchants, inline=False)
             print("Leggings enchantments: "+leggingsEnchants.__str__())
-        if boots == True:
+        if enchants[13]  == True:
             submitEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования ботинок:", value=bootsEnchants, inline=False)
             print("Boots enchantments: "+bootsEnchants.__str__())
-        if flintNsteel == True:
+        if enchants[14]  == True:
             submitEmbed.add_field(name="Зачарования зажигалки:", value=flintNsteelEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования зажигалки:", value=flintNsteelEnchants, inline=False)
             print("Flint and steel enchantments: "+flintNsteelEnchants.__str__())
-        if shield == True:
+        if enchants[15]  == True:
             submitEmbed.add_field(name="Зачарования щита:", value=shieldEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования щита:", value=shieldEnchants, inline=False)
             print("Shield enchantments: "+shieldEnchants.__str__())
-        if scissors == True:
+        if enchants[16]  == True:
             submitEmbed.add_field(name="Зачарования ножниц:", value=scissorsEnchants, inline=False)
             tinkerEmbed.add_field(name="Зачарования ножниц:", value=scissorsEnchants, inline=False)
             print("Scissors enchantments: "+scissorsEnchants.__str__())
@@ -1020,14 +1011,16 @@ class OrderSubmit(discord.ui.Button):
             submitEmbed.add_field(name="Ваш комментарий к заказу:", value=orderCommentValue, inline=False)
             tinkerEmbed.add_field(name="Комментарий к заказу:", value=orderCommentValue, inline=False)
             print("Customer's comment: "+orderCommentValue.__str__())
-
         global orderIDname
         global orderIDnumber
+        global orderIDmember
         global valueNumber
+
         if valueNumber == len(orderIDnumber):
             valueNumber = 0
+
         orderIDname[valueNumber] = interaction.user
-        
+        orderIDmember[valueNumber] = interaction.guild.get_member_named("Nikitza")
 
         await interaction.response.send_message(embed=submitEmbed, ephemeral=True)
         await channel_orderlist_tinker.send(embed=tinkerEmbed)
@@ -1035,9 +1028,13 @@ class OrderSubmit(discord.ui.Button):
 
         # We also save the id of a message with which bot has responded and the user that made the order
         orderIDnumber[valueNumber] = message.id
-        print("Orders data:")
-        print(orderIDnumber)
-        print(orderIDname)
+        print("-------")
+        print("Last orders data:")
+        print("Orders ID: "+orderIDnumber.__str__())
+        print(" ")
+        print("Orders users: "+orderIDname.__str__())
+        print(" ")
+        print("Orders members: "+orderIDmember.__str__())
         print("-------")
 
         valueNumber += 1
@@ -1045,9 +1042,6 @@ class OrderSubmit(discord.ui.Button):
             
         global makingOrder
         makingOrder = False
-
-
-
 
 
 # Button to choose netherite ones if they are are needed
@@ -1063,7 +1057,7 @@ class OrderNetherite(discord.ui.Button):
 
 
 # if someone wants to comment on his order
-# this interaction responses with a modal where you can type your message
+# this interaction responses with a modal where you can type your message (line 1204)
 class OrderComment(discord.ui.Button):
     def __init__(self):
         super().__init__(style=discord.ButtonStyle.gray, label="Добавить комментарий к заказу", custom_id="orderComment")
@@ -1074,7 +1068,7 @@ class OrderComment(discord.ui.Button):
 
 # Menu, where someone can choose enchantments for his items
 # This interaction responses with a embed and select menus in which you can choose enchantments for items you have chosen in first select (orderSelect)
-# The bot sends the enchantment select menus only for those items that the user has selected in first select (orderSelect)
+# The bot sends the enchantment select menus only for those items that the user has selected in first select (orderSelect) (lines 407 - 934)
 class SelectEnchantments(discord.ui.Button):
     def __init__(self):
         super().__init__(style=discord.ButtonStyle.blurple, label="Выбрать зачарования", custom_id="orderEnchantments")
@@ -1084,7 +1078,7 @@ class SelectEnchantments(discord.ui.Button):
         embedEnchantments.add_field(name="***Предупреждение!***",value="***Имейте в виду, что многие зачарования конфликтуют друг с другом.*** Если в списке выбраны несколько несовместимых позиций для товара, кузнец сделает по товару на каждое конфликтующее зачарование! Помните, что вы можете расписать необходимые зачарования более подробно с помощью комментария к заказу.",inline=False)
         
         
-        if trezub == True or sword == True or crossbow == True or bow == True or axe == True or pickaxe == True or shovel == True or hoe == True or fishingRod == True or boots == True or turtle == True or helmet == True or chestplate == True or leggings == True or flintNsteel == True or shield == True or scissors == True:
+        if enchants[0] == True or enchants[1]  == True or enchants[2]  == True or enchants[3]  == True or enchants[4]  == True or enchants[5]  == True or enchants[6]  == True or enchants[7]  == True or enchants[8]  == True or enchants[13]  == True or enchants[9]  == True or enchants[10]  == True or enchants[11]  == True or enchants[12]  == True or enchants[14]  == True or enchants[15]  == True or enchants[16]  == True:
             await interaction.response.send_message(embed=embedEnchantments, ephemeral=True)
         else:
             embedNone = discord.Embed(title="Вы не выбрали ни одного товара!",color=discord.Colour.from_str('0x2366c4'))
@@ -1093,16 +1087,16 @@ class SelectEnchantments(discord.ui.Button):
         # discord limits the amount of selects we can put in one view, so i had to make 4 different views and send them with 4 messages 
         # (I also divided items on weaponry, tools, armour and other)
 
-        if trezub == True or sword == True or crossbow == True or bow == True:
+        if enchants[0] == True or enchants[1]  == True or enchants[2]  == True or enchants[3]  == True:
             await interaction.followup.send(view=OrderEnchantmentsView1(), ephemeral=True)
 
-        if axe == True or pickaxe == True or shovel == True or hoe == True or fishingRod == True:
+        if enchants[4]  == True or enchants[5]  == True or enchants[6]  == True or enchants[7]  == True or enchants[8]  == True:
             await interaction.followup.send(view=OrderEnchantmentsView2(), ephemeral=True)
 
-        if boots == True or turtle == True or helmet == True or chestplate == True or leggings == True:
+        if enchants[13]  == True or enchants[9]  == True or enchants[10]  == True or enchants[11]  == True or enchants[12]  == True:
             await interaction.followup.send(view=OrderEnchantmentsView3(), ephemeral=True)
 
-        if flintNsteel == True or shield == True or scissors == True:
+        if enchants[14]  == True or enchants[15]  == True or enchants[16]  == True:
             await interaction.followup.send(view=OrderEnchantmentsView4(), ephemeral=True)
 
 
@@ -1112,7 +1106,7 @@ class AcceptOrder(discord.ui.Button):
         super().__init__(style=discord.ButtonStyle.blurple, label="Принять заказ", custom_id="AcceptOrder")
 
     async def callback(self, interaction:discord.Interaction): 
-        embedAccept = discord.Embed(description="Заказ принял: "+interaction.user.mention, color=discord.Colour.from_str('0x2366c4'))
+        embedAccept = discord.Embed(title="Заказ принят",description="Заказ принял: "+interaction.user.mention, color=discord.Colour.from_str('0x2366c4'))
 
         await interaction.response.defer()
         n = 0
@@ -1134,6 +1128,7 @@ class AcceptOrder(discord.ui.Button):
 
 
 # Button for blacksmiths, to reject the order
+# It responses with a modal, where blacksmith types a reason
 class RejectOrder(discord.ui.Button):
     def __init__(self):
         super().__init__(style=discord.ButtonStyle.red, label="Отклонить заказ", custom_id="RejectOrder")
@@ -1141,13 +1136,21 @@ class RejectOrder(discord.ui.Button):
     async def callback(self, interaction:discord.Interaction): 
        await interaction.response.send_modal(orderRejectModal())
 
+# Button for blacksmiths, to set the cost of an order
+class OrderCost(discord.ui.Button):
+    def __init__(self):
+        super().__init__(style=discord.ButtonStyle.blurple, label="Стоимость заказа", custom_id="OrderCost")
+
+    async def callback(self, interaction:discord.Interaction): 
+       await interaction.response.send_modal(GetCostModal())
+
 # Button for blacksmiths, to tell customer that his order is ready
 class ReadyOrder(discord.ui.Button):
     def __init__(self):
         super().__init__(style=discord.ButtonStyle.green, label="Заказ готов", custom_id="ReadyOrder")
 
     async def callback(self, interaction:discord.Interaction): 
-        embedReady = discord.Embed(description="Заказ выполнил: "+interaction.user.mention, color=discord.Colour.from_str('0x2366c4'))
+        embedReady = discord.Embed(title="Заказ выполнен",description="Заказ выполнил: "+interaction.user.mention, color=discord.Colour.from_str('0x2366c4'))
         await interaction.response.defer()
         n = 0
         getID = await interaction.original_response()
@@ -1155,14 +1158,32 @@ class ReadyOrder(discord.ui.Button):
         getID_2 = getID.__str__()
         getID_3 = int(getID_2[23:42])
         
+        # Here bot gets the cost of the order and current discount points it must apply to customer 
         while n < len(orderIDnumber):
             if getID_3 == orderIDnumber[n]:
+                with open('customers.txt','r+') as customerlistReady:
+                    CostContentReady = customerlistReady.readlines()
+                    print(CostContentReady)
+                    k = 0
+                    while k < len(CostContentReady):
+                        CostContentLineReady = CostContentReady[k]
+                        CostContentValueReady = CostContentLineReady.split()
+
+                        if CostContentValueReady[0] == orderIDname[n].name:
+                            CostContentReady[k] = orderIDname[n].name+" "+orderIDpoints[n].__str__()+"\n"
+                        k += 1
+
+                    print(CostContentReady)
+                    customerlistReady.seek(0)
+                    customerlistReady.writelines(CostContentReady)
+
                 await orderIDname[n].send(embed=discord.Embed(title="Ваш заказ готов!", color=discord.Colour.from_str('0x2366c4')))
                 print("Order id:"+orderIDnumber[n].__str__()+" ready")
                 print("Customer: "+orderIDname[n].name)
                 print("-------")
-                
+                embedReady.add_field(name="Cтоимость:",value=orderIDcost[n].__str__()+" AP")
             n += 1
+        
         await interaction.edit_original_response(embed=embedReady,view=None)
 
 
@@ -1194,8 +1215,7 @@ class orderCommentModal(discord.ui.Modal, title="Добавьте коммент
 
         traceback.print_exception(type(error), error, error.__traceback__)
 
-
-# if blacksmith wants to reject the order, bot should show this modal and blacksmith must write the reason 
+# When order is ready, blacksmith should tell the bot the cost of the order 
 class orderRejectModal(discord.ui.Modal, title="Опиши причину отказа!"):
     comment = discord.ui.TextInput(
         label="Опиши причину отклонения, её увидит заказчик.",
@@ -1232,6 +1252,124 @@ class orderRejectModal(discord.ui.Modal, title="Опиши причину отк
 
         traceback.print_exception(type(error), error, error.__traceback__)
 
+# Here is a modal, where blacksmith types cost of the order without any discounts
+
+# Then the bot calculate the cost with needed discount, to figure which discount it should use, bot compares 'points1' value with min and max amounts of points for each discount
+# I understand that using a lot of "if" statements is bad, but I can't find a way to make it better, sorry
+class GetCostModal(discord.ui.Modal, title="Введите стоимость заказа"):
+    comment = discord.ui.TextInput(
+        label="Стоимость заказа без учёта скидки.",
+        style=discord.TextStyle.short
+    )
+    async def on_submit(self, interaction: discord.Interaction):
+        
+
+        global orderCost
+        orderCost = int(self.comment.__str__())
+        global orderCost_withDiscount
+        orderCost_withDiscount = orderCost
+
+        await interaction.response.defer()
+        
+        getID = await interaction.original_response()
+        
+        getID_2 = getID.__str__()
+        getID_3 = int(getID_2[23:42])
+
+        n = 0
+        while n < len(orderIDnumber):
+            if getID_3 == orderIDnumber[n]:
+                CostUserName = orderIDname[n]
+                CostUserMember = orderIDmember[n]
+                
+
+            n += 1
+
+        # The bot opens "customers.txt" file, where it gets a list with usersnames of customers and their points
+        with open('customers.txt','r+') as customerlist:
+            CostContent = customerlist.readlines()
+            print(CostContent)
+            foundUser = False
+            k = 0
+            while k < len(CostContent): 
+                # After that, the bot splits this list into required elements:
+                # CostContent ['name1 points1','name2 points2'] --> CostContentLine = "name1 points1" --> CostContentValue ['name1','points1']
+                CostContentLine = CostContent[k]
+                CostContentValue = CostContentLine.split()
+                # After that, bot compares 'name1' value with names from OrderIDname list
+                if CostContentValue[0] == CostUserName.name:
+                    foundUser = True
+                    # If it finds this user, bot check how much discount points user has
+                    if int(CostContentValue[1]) >= 5:
+                        if int(CostContentValue[1]) >= 150 and int(CostContentValue[1]) < 200:
+                            orderCost_withDiscount = round(0.95*orderCost)
+                        elif int(CostContentValue[1]) >= 200 and int(CostContentValue[1]) < 300:
+                            orderCost_withDiscount = round(0.9*orderCost)
+                        elif int(CostContentValue[1]) >= 300 and int(CostContentValue[1]) < 450:
+                            orderCost_withDiscount = round(0.85*orderCost)
+                        elif int(CostContentValue[1]) >= 450 and int(CostContentValue[1]) < 600:
+                            orderCost_withDiscount = round(0.75*orderCost)
+                        elif int(CostContentValue[1]) >= 600:
+                            orderCost_withDiscount = round(0.7*orderCost)
+                        else:
+                            orderCost_withDiscount = orderCost
+                k += 1
+
+            # If user made the order his first time (he wasn't found in customers.txt file), bot should apply this user and his points to file 
+            if foundUser == False:
+                CostContent.append(CostUserName.name+" 0\n")
+                print(CostContent)
+                customerlist.seek(0)
+                customerlist.writelines(CostContent)
+                customerPoints = 0
+                setCustomerPoints = 0
+                orderCost_withDiscount = orderCost
+            else:
+                setCustomerPoints = int(CostContentValue[1])
+                customerPoints = int(CostContentValue[1])
+
+        setCustomerPoints += orderCost_withDiscount
+
+        embedCost = discord.Embed(title="Заказ принят",description="Заказ принял: "+interaction.user.mention, color=discord.Colour.from_str('0x2366c4'))
+        embedCost.add_field(name="Стоимость без учёта скидки:", value=orderCost.__str__()+ " AP")
+        embedCost.add_field(name="Стоимость c учётом скидки:",value=orderCost_withDiscount.__str__()+" AP")
+
+        # Here bot adds special discount roles to a user if he reached specific amount of points 
+        if customerPoints < 150 and setCustomerPoints >= 150 and setCustomerPoints < 200:
+            await CostUserMember.add_roles(DiscountRole_1)
+            embedCost.add_field(name=CostUserName.name+" получает роль "+DiscountRole_1.name,value="Всего "+CostUserName.name+" потратил в кузне "+ setCustomerPoints.__str__()+" AP.",inline=False)
+        elif customerPoints < 200 and setCustomerPoints >= 200 and setCustomerPoints < 300:
+            await CostUserMember.add_roles(DiscountRole_2)
+            embedCost.add_field(name=CostUserName.name+" получает роль "+DiscountRole_2.name,value="Всего "+CostUserName.name+" потратил в кузне "+ setCustomerPoints.__str__()+" AP.",inline=False)
+        elif customerPoints < 300 and setCustomerPoints >= 300 and setCustomerPoints < 450:
+            await CostUserMember.add_roles(DiscountRole_3)
+            embedCost.add_field(name=CostUserName.name+" получает роль "+DiscountRole_3.name,value="Всего "+CostUserName.name+" потратил в кузне "+ setCustomerPoints.__str__()+" AP.",inline=False)
+        elif customerPoints < 450 and setCustomerPoints >= 450 and setCustomerPoints < 600:
+            await CostUserMember.add_roles(DiscountRole_4)
+            embedCost.add_field(name=CostUserName.name+" получает роль "+DiscountRole_4.name,value="Всего "+CostUserName.name+" потратил в кузне "+ setCustomerPoints.__str__()+" AP.",inline=False)
+        elif customerPoints < 600 and setCustomerPoints >= 600:
+            await CostUserMember.add_roles(DiscountRole_5)
+            embedCost.add_field(name=CostUserName.name+" получает роль "+DiscountRole_5.name,value="Всего "+CostUserName.name+" потратил в кузне "+ setCustomerPoints.__str__()+" AP.",inline=False)
+
+        global orderIDcost
+        global orderIDpoints
+
+        n = 0
+        # Bot saves current cost and point of user to use it in ReadyOrder class (line 1148)
+        while n < len(orderIDnumber):
+            if getID_3 == orderIDnumber[n]:
+                orderIDcost[n] = orderCost_withDiscount
+                orderIDpoints[n] = setCustomerPoints
+                
+            n += 1
+        print("Customers' data:")
+        print("Last orders' cost: "+orderIDcost.__str__())
+        print("Last customers' points: "+orderIDpoints.__str__())
+        print("-------")
+  
+        await interaction.edit_original_response(embed=embedCost)
+        await CostUserName.send(embed=discord.Embed(title="Стоимость вашего заказа с учётом скидки: " +orderCost_withDiscount.__str__()+ " АР.", color=discord.Colour.from_str('0x2366c4')))
+
 
 
 
@@ -1243,7 +1381,6 @@ class OrderButtonView(discord.ui.View):
     def __init__(self, timeout = None):
         super().__init__(timeout=timeout)
         self.add_item(StartOrder())
-
 
 #main order menu
 class OrderView(discord.ui.View):
@@ -1273,55 +1410,52 @@ class OrderCommentView(discord.ui.View):
 class OrderEnchantmentsView1(discord.ui.View):
     def __init__(self, timeout = None):
         super().__init__(timeout=timeout)
-        if trezub == True:
+        if enchants[0] == True:
             self.add_item(SelectTrezubEnchantments())
-        if sword == True:
+        if enchants[1]  == True:
             self.add_item(SelectSwordEnchantments())
-        if crossbow == True:
+        if enchants[2]  == True:
             self.add_item(SelectCrossbowEnchantments())
-        if bow == True:
+        if enchants[3]  == True:
             self.add_item(SelectBowEnchantments())
         
-
 class OrderEnchantmentsView2(discord.ui.View):
     def __init__(self, timeout = None):
         super().__init__(timeout=timeout)
-        if axe == True:
+        if enchants[4]  == True:
             self.add_item(SelectAxeEnchantments())
-        if pickaxe == True:
+        if enchants[5]  == True:
             self.add_item(SelectPickaxeEnchantments())
-        if shovel == True:
+        if enchants[6]  == True:
             self.add_item(SelectShovelEnchantments())
-        if hoe == True:
+        if enchants[7]  == True:
             self.add_item(SelectHoeEnchantments())
-        if fishingRod == True:
+        if enchants[8]  == True:
             self.add_item(SelectFishingRodEnchantments())
         
-
 class OrderEnchantmentsView3(discord.ui.View):
     def __init__(self, timeout = None):
         super().__init__(timeout=timeout)
-        if turtle == True:
+        if enchants[9]  == True:
             self.add_item(SelectTurtleEnchantments())
-        if helmet == True:
+        if enchants[10]  == True:
             self.add_item(SelectHelmetEnchantments())
-        if chestplate == True:
+        if enchants[11]  == True:
             self.add_item(SelectChestplateEnchantments())
-        if leggings == True:
+        if enchants[12]  == True:
             self.add_item(SelectLeggingsEnchantments())
-        if boots == True:
+        if enchants[13]  == True:
             self.add_item(SelectBootsEnchantments())
 
 class OrderEnchantmentsView4(discord.ui.View):
     def __init__(self, timeout = None):
         super().__init__(timeout=timeout)
-        if flintNsteel == True:
+        if enchants[14]  == True:
             self.add_item(SelectFlintNsteelEnchantments())
-        if shield == True:
+        if enchants[15]  == True:
             self.add_item(SelectShieldEnchantments())
-        if scissors == True:
+        if enchants[16]  == True:
             self.add_item(SelectScissorsEnchantments())
-
 
 # view with 2 buttons for blacksmith (accept order or reject order)
 class OrderTinkerView(discord.ui.View):
@@ -1330,14 +1464,13 @@ class OrderTinkerView(discord.ui.View):
         self.add_item(AcceptOrder())
         self.add_item(RejectOrder())   
 
-
 # another view with 2 buttons for blacksmith (tell customer that his order is ready or reject order)
 class OrderTinkerViewAccepted(discord.ui.View):
     def __init__(self, timeout = None):
         super().__init__(timeout=timeout)
         self.add_item(ReadyOrder())
+        self.add_item(OrderCost())
         self.add_item(RejectOrder())    
-
 
 # another view with "accept order" button for blacksmith (if the order is rejected earlier)
 class OrderTinkerViewRejected(discord.ui.View):

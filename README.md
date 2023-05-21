@@ -8,6 +8,8 @@ The bot works with discord interaction and can give you examples on such topics 
 - how to work with slash commands
 - how to work with discord.ui.view, discord.ui.button, discord.ui.select, discord.ui.modal
 - how to work with interaction
+- how to work with discord roles
+- how to work with files
 - other discord API elements
 
 Sorry for the bad translation in some places, english is not my native language and sometimes i can be wrong.
