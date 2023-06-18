@@ -69,9 +69,6 @@ orderIDnumber = [0,0,0,0,0,0,0,0,0,0]       # This list contains IDs of 10 last 
 
 @client.event
 async def on_ready():
-    NikitzaUser = await client.fetch_user(664948560818864166)                   # I can't be 100% sure that everything is OK after restart, so I made bot ping me each start
-    await NikitzaUser.send("Бот рестартнулся, чекни не наебнулось ли чего")
-
     print("Bot starting...")
     print("Made by Nikitza Inc")
     # After each restart bot can't work with buttons/etc. it sent previously, so we have to send "Start order" button again
