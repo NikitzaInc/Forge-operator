@@ -1,0 +1,4 @@
+<channel_orders ID>
+<ID of first message in channel_orders>
+<ID of second message (Start Order button) in channel_orders>
+<channel_orderlist ID>

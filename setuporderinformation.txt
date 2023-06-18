@@ -1,0 +1,2 @@
+<customer ID> <ID of first message (order content)> <ID of second message (buttons for blacksmiths)> <Order status>
+
