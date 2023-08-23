@@ -1,6 +1,12 @@
+# Here is a small discord bot i've made for my friend's server
+# The bot helps users to make an order in my friends's forge
+# Sorry for the poor translation in some places, English is not my native language and I can sometimes make mistakes
+# I wouldn't have been able to make this bot without the help of github of Martine discord bot, great thanks to https://github.com/MartineBot and PredaaA
+# Feel free to copy my code and use it for your projects! 
+
 # How the bot works:
 # When the bot enters the server, the admin must set the channel where users can leave orders (channel_orders) and the channel where blacksmiths can see these orders (channel_orderlist)
-# The admin should send special slash command /setupbot
+# The admin should send special slash command /setupbot (/setup command is also shown in bot's command list, I don't understand why this command is there, I didn't ever made it ಠ_ಠ)
 # Bot works even after restarts, saving information about channels it works with and 10 last orders
 # ---------
 # When someone wants to order something, bot send him a ephemeral message with some information and select menu (discord.ui.Select) where user can choose items he wants to buy
@@ -36,7 +42,6 @@
 # They also can delete user's ID from blacklist
 # The bot responds to the slash command "Help" with different embeds with information for users and blacksmiths.
 # If you don't understand some parts of my code or how smth works, feel free to contact me: nikitzacompany@gmail.com or Nikitza#1663 on Discord
-# I understand that my code sometimes looks very stupid, but I don't understand how to make some things better
 
 
 
@@ -48,7 +53,7 @@ from threading import Timer
     
 # Guild in discord API means discord server
 MY_GUILD = discord.Object(id=your_guild_id)
-activity = discord.Activity(type=discord.ActivityType.watching, name="в #заказы")    
+activity = discord.Activity(type=discord.ActivityType.watching, name="в #заказы")       
 
 class MyClient(discord.Client):
     def __init__(self, *, intents: discord.Intents.all()):
@@ -69,6 +74,9 @@ orderIDnumber = [0,0,0,0,0,0,0,0,0,0]       # This list contains IDs of 10 last 
 
 @client.event
 async def on_ready():
+    NikitzaUser = await client.fetch_user(664948560818864166)                   # I can't be 100% sure that everything is OK after restart, so I made bot ping me each start
+    await NikitzaUser.send("Бот рестартнулся, чекни не наебнулось ли чего")
+
     print("Bot starting...")
     print("Made by Nikitza Inc")
     # After each restart bot can't work with buttons/etc. it sent previously, so we have to send "Start order" button again
@@ -438,6 +446,7 @@ valueNumber = 0                             # This variable we use to save data 
 
 
 # After each order we have to clear values of all variables and lists used in making order
+# I understand that my code sometimes looks very goofy, but I don't understand how to make some things better
 def clearValues():
     global orderCommentSubmit
     global netherite
@@ -495,10 +504,10 @@ class StartOrder(discord.ui.Button):
             title="Составьте ваш заказ!",
             color=discord.Colour.from_str('0x2366c4'),
             description="В выпадающем списке выберите товары, которые хотите приобрести.")
-        embed1.add_field(name="Выбрать зачарования",value="Не забудьте выбрать зачарования для предметов! ***Имейте ввиду, что некоторые зачарования конфликтуют друг с другом. Если выбраны несколько несовместимых позиций для товара, кузнец сделает по товару на каждое конфликтующее зачарование!***",inline=False)
-        embed1.add_field(name="Материал товара",value="***Все предметы брони, мечи и инструменты по умолчанию делаются алмазными.*** Если вас интересует незеритовый аналог товара, выберите его, нажав на соответствующую кнопку. Если же вас интересует иной материал, пожалуйста опишите это в комментарии к заказу.",inline=False)
-        embed1.add_field(name="Украшения брони", value='Добавьте уникальности вашему обмундированию! Для добавления украшений (декораций) к вашей броне, нажмите кнопку "**Выбрать украшения брони**".')
-        embed1.add_field(name="Добавить комментарий к заказу",value="Также можно добавить комментарий к заказу. Укажите все подробности заказа, например, место доставки, особенности материала или чар.",inline=False)
+        embed1.add_field(name="<:Enchanted_Book:1140597764326162503> Выбрать зачарования",value="Не забудьте выбрать зачарования для предметов! ***Имейте ввиду, что некоторые зачарования конфликтуют друг с другом. Если выбраны несколько несовместимых позиций для товара, кузнец сделает по товару на каждое конфликтующее зачарование!***",inline=False)
+        embed1.add_field(name="<:Netherite_Ingot:1140595704293756938> Материал товара",value="***Все предметы брони, мечи и инструменты по умолчанию делаются алмазными.*** Если вас интересует незеритовый аналог товара, выберите его, нажав на соответствующую кнопку. Если же вас интересует иной материал, пожалуйста опишите это в комментарии к заказу.",inline=False)
+        embed1.add_field(name="<:Tide_Armor_Trim:1140599228025012346> Украшения брони", value='Добавьте уникальности вашему обмундированию! Для добавления украшений (декораций) к вашей броне, нажмите кнопку "**Выбрать украшения брони**".')
+        embed1.add_field(name="💬 Добавить комментарий к заказу",value="Также можно добавить комментарий к заказу. Укажите все подробности заказа, например, место доставки, особенности материала или чар.",inline=False)
         embed1.add_field(name="Выбранные товары:",value="-",inline=True)
         
 
@@ -556,23 +565,23 @@ class StartOrder(discord.ui.Button):
 class OrderSelect(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Трезубец"),
-            discord.SelectOption(label="Меч"),
-            discord.SelectOption(label="Арбалет"),
-            discord.SelectOption(label="Лук"),
-            discord.SelectOption(label="Топор"),
-            discord.SelectOption(label="Кирка"), 
-            discord.SelectOption(label="Лопата"),
-            discord.SelectOption(label="Мотыга"),
-            discord.SelectOption(label="Удочка"),
-            discord.SelectOption(label="Черепаший панцирь"),
-            discord.SelectOption(label="Шлем"),
-            discord.SelectOption(label="Нагрудник"),
-            discord.SelectOption(label="Поножи"),
-            discord.SelectOption(label="Ботинки"),
-            discord.SelectOption(label="Зажигалка"),
-            discord.SelectOption(label="Щит"),
-            discord.SelectOption(label="Ножницы")
+            discord.SelectOption(label="Трезубец",emoji='<:trezubets:1140545960485867560>'),
+            discord.SelectOption(label="Меч",emoji='<:sword:1128128015604387881>'),
+            discord.SelectOption(label="Арбалет",emoji='<:crossbow:1140535524654858350>'),
+            discord.SelectOption(label="Лук",emoji='<:lukLuchok:1140553958209880115>'),
+            discord.SelectOption(label="Топор",emoji='<:Diamond_Axe:1140564246208446594>'),
+            discord.SelectOption(label="Кирка",emoji='<:Diamond_Pickaxe:1140564674165886976>'), 
+            discord.SelectOption(label="Лопата",emoji='<:Diamond_Shovel:1140582652290793573>'),
+            discord.SelectOption(label="Мотыга",emoji='<:Diamond_Hoe:1140582868746248220>'),
+            discord.SelectOption(label="Удочка",emoji='<:Fishing_Rod:1140583684391579720>'),
+            discord.SelectOption(label="Черепаший панцирь",emoji='<:Turtle_Shell:1140584351617273856>'),
+            discord.SelectOption(label="Шлем",emoji='<:Diamond_Helmet:1140585332602064996>'),
+            discord.SelectOption(label="Нагрудник",emoji='<:Diamond_Chestplate:1140586301494657125>'),
+            discord.SelectOption(label="Поножи",emoji='<:Diamond_Leggings:1140586298298613781>'),
+            discord.SelectOption(label="Ботинки",emoji='<:Diamond_Boots:1140586343228002425>'),
+            discord.SelectOption(label="Зажигалка",emoji='<:Flint_and_Steel:1140587538495586305>'),
+            discord.SelectOption(label="Щит",emoji='<:Shield:1140587885951717498>'),
+            discord.SelectOption(label="Ножницы",emoji='<:Shears:1140588229331009586>')
         ]
         super().__init__(placeholder="Выберите нужные товары", min_values=1, max_values=17, options=options)
     
@@ -582,10 +591,10 @@ class OrderSelect(discord.ui.Select):
             title="Составьте ваш заказ!",
             color=discord.Colour.from_str('0x2366c4'),
             description="В выпадающем списке выберите товары, которые хотите приобрести.")
-        embedEdit.add_field(name="Выбрать зачарования",value="Не забудьте выбрать зачарования для предметов! ***Имейте ввиду, что некоторые зачарования конфликтуют друг с другом. Если выбраны несколько несовместимых позиций для товара, кузнец сделает по товару на каждое конфликтующее зачарование!***",inline=False)
-        embedEdit.add_field(name="Материал товара",value="***Все предметы брони, мечи и инструменты по умолчанию делаются алмазными.*** Если вас интересует незеритовый аналог товара, выберите его, нажав на соответствующую кнопку. Если же вас интересует иной материал, пожалуйста опишите это в комментарии к заказу.",inline=False)
-        embedEdit.add_field(name="Украшения брони", value='Добавьте уникальности вашему обмундированию! Для добавления украшений (декораций) к вашей броне, нажмите кнопку "**Выбрать украшения брони**".')
-        embedEdit.add_field(name="Добавить комментарий к заказу",value="Также можно добавить комментарий к заказу. Укажите все подробности заказа, например, место доставки, особенности материала или чар.",inline=False)
+        embedEdit.add_field(name="<:Enchanted_Book:1140597764326162503> Выбрать зачарования",value="Не забудьте выбрать зачарования для предметов! ***Имейте ввиду, что некоторые зачарования конфликтуют друг с другом. Если выбраны несколько несовместимых позиций для товара, кузнец сделает по товару на каждое конфликтующее зачарование!***",inline=False)
+        embedEdit.add_field(name="<:Netherite_Ingot:1140595704293756938> Материал товара",value="***Все предметы брони, мечи и инструменты по умолчанию делаются алмазными.*** Если вас интересует незеритовый аналог товара, выберите его, нажав на соответствующую кнопку. Если же вас интересует иной материал, пожалуйста опишите это в комментарии к заказу.",inline=False)
+        embedEdit.add_field(name="<:Tide_Armor_Trim:1140599228025012346> Украшения брони", value='Добавьте уникальности вашему обмундированию! Для добавления украшений (декораций) к вашей броне, нажмите кнопку "**Выбрать украшения брони**".')
+        embedEdit.add_field(name="💬 Добавить комментарий к заказу",value="Также можно добавить комментарий к заказу. Укажите все подробности заказа, например, место доставки, особенности материала или чар.",inline=False)
         embedEdit.add_field(name="Выбранные товары:",value=valueLine(self.values),inline=True)
         await interaction.response.defer(ephemeral=True)  
                                                             
@@ -648,33 +657,33 @@ class OrderSelect(discord.ui.Select):
 class OrderSelectNetherite(discord.ui.Select):
     def __init__(self):
         valuesCount = 1
-        options=[discord.SelectOption(label="Всe выбранные товары")]
+        options=[discord.SelectOption(label="Всe выбранные товары",emoji='<:Netherite_Ingot:1140595704293756938>')]
         if products[1] == True:
-            options.append(discord.SelectOption(label="Меч"))
+            options.append(discord.SelectOption(label="Меч",emoji='<:sword:1128128015604387881>'))
             valuesCount += 1
         if products[4] == True:
-            options.append(discord.SelectOption(label="Топор"))
+            options.append(discord.SelectOption(label="Топор",emoji='<:Diamond_Axe:1140564246208446594>'))
             valuesCount += 1
         if products[5] == True:
-            options.append(discord.SelectOption(label="Кирка"))
+            options.append(discord.SelectOption(label="Кирка",emoji='<:Diamond_Pickaxe:1140564674165886976>'))
             valuesCount += 1
         if products[6] == True:
-            options.append(discord.SelectOption(label="Лопата"))
+            options.append(discord.SelectOption(label="Лопата",emoji='<:Diamond_Shovel:1140582652290793573>'))
             valuesCount += 1
         if products[7] == True:
-            options.append(discord.SelectOption(label="Мотыга"))
+            options.append(discord.SelectOption(label="Мотыга",emoji='<:Diamond_Hoe:1140582868746248220>'))
             valuesCount += 1
         if products[10] == True:
-            options.append(discord.SelectOption(label="Шлем"))
+            options.append(discord.SelectOption(label="Шлем",emoji='<:Diamond_Helmet:1140585332602064996>'))
             valuesCount += 1
         if products[11] == True:
-            options.append(discord.SelectOption(label="Нагрудник"))
+            options.append(discord.SelectOption(label="Нагрудник",emoji='<:Diamond_Chestplate:1140586301494657125>'))
             valuesCount += 1
         if products[12] == True:
-            options.append(discord.SelectOption(label="Поножи"))
+            options.append(discord.SelectOption(label="Поножи",emoji='<:Diamond_Leggings:1140586298298613781>'))
             valuesCount += 1
         if products[13] == True:
-            options.append(discord.SelectOption(label="Ботинки"))
+            options.append(discord.SelectOption(label="Ботинки",emoji='<:Diamond_Boots:1140586343228002425>'))
             valuesCount += 1
         
         super().__init__(placeholder="Выберите нужные товары", min_values=1, max_values=valuesCount, options=options)
@@ -702,9 +711,9 @@ class SelectTrezubEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Громовержец"),
-            discord.SelectOption(label="Пронзатель (V)",description="Несовместимо с тягуном."),
+            discord.SelectOption(label="Пронзатель (V)"),
             discord.SelectOption(label="Верность (III)",description="Несовместимо с тягуном."),
             discord.SelectOption(label="Тягун (III)",description="Несовместимо с пронзателем, верностью."),
             discord.SelectOption(label="Проклятье утраты"),
@@ -737,7 +746,7 @@ class SelectSwordEnchantments(discord.ui.Select):
             discord.SelectOption(label="Острота (V)",description="Несовместимо с бичом членистоногих, небесной карой."),
             discord.SelectOption(label="Бич членистоногих (V)",description="Несовместимо с остротой, небесной карой."),
             discord.SelectOption(label="Небесная кара (V)",description="Несовместимо с бичом членистоногих, остротой."),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Прочность (III)"),
             discord.SelectOption(label="Разящий клинок (III)"),
             discord.SelectOption(label="Заговор огня (II)"),
@@ -769,7 +778,7 @@ class SelectCrossbowEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Тройной выстрел",description="Несовместимо с пронзающей стрелой."),
             discord.SelectOption(label="Пронзающая стрела (IV)",description="Несовместимо с тройным выстрелом."),
             discord.SelectOption(label="Быстрая перезарядка (III)"),
@@ -799,8 +808,8 @@ class SelectBowEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка",description="Несовместимо с бесконечностью."),
-            discord.SelectOption(label="Бесконечность",description="Несовместимо с починкой."),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
+            discord.SelectOption(label="Бесконечность"),
             discord.SelectOption(label="Сила (V)"),
             discord.SelectOption(label="Отбрасывание (II)"),
             discord.SelectOption(label="Горящая стрела"),
@@ -830,7 +839,7 @@ class SelectAxeEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Эффективность (V)"),
             discord.SelectOption(label="Удача (III)",description="Несовместимо с шелковым касанием."),
             discord.SelectOption(label="Шёлковое касание",description="Несовместимо с удачей."),
@@ -865,7 +874,7 @@ class SelectPickaxeEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Эффективность (V)"),
             discord.SelectOption(label="Шёлковое касание",description="Несовместимо с удачей."),
             discord.SelectOption(label="Удача (III)",description="Несовместимо с шелковым касанием."),
@@ -897,7 +906,7 @@ class SelectShovelEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Эффективность (V)"),
             discord.SelectOption(label="Шёлковое касание",description="Несовместимо с удачей."),
             discord.SelectOption(label="Удача (III)",description="Несовместимо с шелковым касанием."),
@@ -929,7 +938,7 @@ class SelectHoeEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Эффективность (V)"),
             discord.SelectOption(label="Шёлковое касание",description="Несовместимо с удачей."),
             discord.SelectOption(label="Удача (III)",description="Несовместимо с шелковым касанием."),
@@ -961,7 +970,7 @@ class SelectFishingRodEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Приманка(III)"),
             discord.SelectOption(label="Везучий рыбак (III)"),
             discord.SelectOption(label="Проклятье утраты"),
@@ -992,7 +1001,7 @@ class SelectBootsEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Защита (IV)", description="Несовместимо с взрывоустойчивостью, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Взрывоустойчивость (IV)", description="Несовместимо с защитой, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Огнеупорность (IV)", description="Несовместимо с взрывоустойчивостью, защитой, защитой от снарядов."),
@@ -1031,7 +1040,7 @@ class SelectTurtleEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Защита (IV)", description="Несовместимо с взрывоустойчивостью, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Взрывоустойчивость (IV)", description="Несовместимо с защитой, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Огнеупорность (IV)", description="Несовместимо с взрывоустойчивостью, защитой, защитой от снарядов."),
@@ -1068,7 +1077,7 @@ class SelectHelmetEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Защита (IV)", description="Несовместимо с взрывоустойчивостью, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Взрывоустойчивость (IV)", description="Несовместимо с защитой, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Огнеупорность (IV)", description="Несовместимо с взрывоустойчивостью, защитой, защитой от снарядов."),
@@ -1105,7 +1114,7 @@ class SelectChestplateEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Защита (IV)", description="Несовместимо с взрывоустойчивостью, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Взрывоустойчивость (IV)", description="Несовместимо с защитой, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Огнеупорность (IV)", description="Несовместимо с взрывоустойчивостью, защитой, защитой от снарядов."),
@@ -1140,7 +1149,7 @@ class SelectLeggingsEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Защита (IV)", description="Несовместимо с взрывоустойчивостью, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Взрывоустойчивость (IV)", description="Несовместимо с защитой, огнеупорностью, защитой от снарядов."),
             discord.SelectOption(label="Огнеупорность (IV)", description="Несовместимо с взрывоустойчивостью, защитой, защитой от снарядов."),
@@ -1176,7 +1185,7 @@ class SelectFlintNsteelEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Проклятье утраты"),
         ]
         super().__init__(placeholder="Выберите зачарования зажигалки", min_values=1, max_values=3, options=options)
@@ -1201,7 +1210,7 @@ class SelectShieldEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Проклятье утраты"),
         ]
         super().__init__(placeholder="Выберите зачарования щита", min_values=1, max_values=3, options=options)
@@ -1226,7 +1235,7 @@ class SelectScissorsEnchantments(discord.ui.Select):
     def __init__(self):
         options=[
             discord.SelectOption(label="Прочность (III)"),
-            discord.SelectOption(label="Починка"),
+            discord.SelectOption(label="Починка",description="Временно недоступно"),
             discord.SelectOption(label="Эффективность (V)"),
             discord.SelectOption(label="Проклятье утраты"),
         ]
@@ -1251,22 +1260,22 @@ class SelectScissorsEnchantments(discord.ui.Select):
 class SelectTrimPatternTurtle(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Страж"),
-            discord.SelectOption(label="Вредина"),
-            discord.SelectOption(label="Дебри"),
-            discord.SelectOption(label="Берег"),
-            discord.SelectOption(label="Дюна"),
-            discord.SelectOption(label="Искатель"),
-            discord.SelectOption(label="Сборщик"),
-            discord.SelectOption(label="Скульптор"),
-            discord.SelectOption(label="Вождь"),
-            discord.SelectOption(label="Хранитель"),
-            discord.SelectOption(label="Тишина"),
-            discord.SelectOption(label="Прилив"),
-            discord.SelectOption(label="Рыло"),
-            discord.SelectOption(label="Ребро"),
-            discord.SelectOption(label="Око"),
-            discord.SelectOption(label="Шпиль")
+            discord.SelectOption(label="Страж",emoji='<:Sentry:1140626667598008380> '),
+            discord.SelectOption(label="Вредина",emoji='<:Vex:1140626646437728406>'),
+            discord.SelectOption(label="Дебри",emoji='<:Wild:1140626637512245309>'),
+            discord.SelectOption(label="Берег",emoji='<:Coast:1140626682483572736>'),
+            discord.SelectOption(label="Дюна",emoji='<:Dune:1140626678780014592>'),
+            discord.SelectOption(label="Искатель",emoji='<:Wayfinder:1140626640901246986>'),
+            discord.SelectOption(label="Сборщик",emoji='<:Raiser:1140626670785667182>'),
+            discord.SelectOption(label="Скульптор",emoji='<:Shaper:1140626664078983200> '),
+            discord.SelectOption(label="Вождь",emoji='<:Host:1140626674002702376>'),
+            discord.SelectOption(label="Хранитель",emoji='<:Ward:1140626643325562900>'),
+            discord.SelectOption(label="Тишина",emoji='<:Silence:1140626659955974275> '),
+            discord.SelectOption(label="Прилив",emoji='<:Tide:1140626648157388841> '),
+            discord.SelectOption(label="Рыло",emoji='<:Snout:1140626655535177798>'),
+            discord.SelectOption(label="Ребро",emoji='<:Rib:1140626669330235574> '),
+            discord.SelectOption(label="Око",emoji='<:Oko:1140626676766740480> '),
+            discord.SelectOption(label="Шпиль",emoji='<:Spire:1140626651252805633> ')
         ]
         super().__init__(placeholder="Выберите шаблон украшения черепашьего панциря", min_values=1, max_values=16, options=options)
 
@@ -1285,16 +1294,16 @@ class SelectTrimPatternTurtle(discord.ui.Select):
 class SelectTrimMaterialTurtle(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Изумруд"),
-            discord.SelectOption(label="Редстоун"),
-            discord.SelectOption(label="Лазурит"),
-            discord.SelectOption(label="Аметист"),
-            discord.SelectOption(label="Кварц"),
-            discord.SelectOption(label="Незерит"),
-            discord.SelectOption(label="Алмаз"),
-            discord.SelectOption(label="Золото"),
-            discord.SelectOption(label="Железо"),
-            discord.SelectOption(label="Медь")
+            discord.SelectOption(label="Изумруд",emoji='<:Emerald:1140618895737241650>'),
+            discord.SelectOption(label="Редстоун",emoji='<:Redstone_Dust:1140618892528590930>'),
+            discord.SelectOption(label="Лазурит",emoji='<:Lapis_Lazuli:1140618881694707752>'),
+            discord.SelectOption(label="Аметист",emoji='<:Amethyst_Shard:1140618890817310961>'),
+            discord.SelectOption(label="Кварц",emoji='<:Nether_Quartz:1140618878775459851>'),
+            discord.SelectOption(label="Незерит",emoji='<:Netherite_Ingot:1140595704293756938>'),
+            discord.SelectOption(label="Алмаз",emoji='<:Diamond:1140600966752776213>'),
+            discord.SelectOption(label="Золото",emoji='<:Gold_Ingot:1140618886350389319>'),
+            discord.SelectOption(label="Железо",emoji='<:Iron_Ingot:1140618883611492453>'),
+            discord.SelectOption(label="Медь",emoji='<:Copper_Ingot:1140618887868731503>')
         ]
         super().__init__(placeholder="Выберите материал украшения черепашьего панциря", min_values=1, max_values=10, options=options)
 
@@ -1313,22 +1322,22 @@ class SelectTrimMaterialTurtle(discord.ui.Select):
 class SelectTrimPatternHelmet(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Страж"),
-            discord.SelectOption(label="Вредина"),
-            discord.SelectOption(label="Дебри"),
-            discord.SelectOption(label="Берег"),
-            discord.SelectOption(label="Дюна"),
-            discord.SelectOption(label="Искатель"),
-            discord.SelectOption(label="Сборщик"),
-            discord.SelectOption(label="Скульптор"),
-            discord.SelectOption(label="Вождь"),
-            discord.SelectOption(label="Хранитель"),
-            discord.SelectOption(label="Тишина"),
-            discord.SelectOption(label="Прилив"),
-            discord.SelectOption(label="Рыло"),
-            discord.SelectOption(label="Ребро"),
-            discord.SelectOption(label="Око"),
-            discord.SelectOption(label="Шпиль")
+            discord.SelectOption(label="Страж",emoji='<:Sentry:1140626667598008380> '),
+            discord.SelectOption(label="Вредина",emoji='<:Vex:1140626646437728406>'),
+            discord.SelectOption(label="Дебри",emoji='<:Wild:1140626637512245309>'),
+            discord.SelectOption(label="Берег",emoji='<:Coast:1140626682483572736>'),
+            discord.SelectOption(label="Дюна",emoji='<:Dune:1140626678780014592>'),
+            discord.SelectOption(label="Искатель",emoji='<:Wayfinder:1140626640901246986>'),
+            discord.SelectOption(label="Сборщик",emoji='<:Raiser:1140626670785667182>'),
+            discord.SelectOption(label="Скульптор",emoji='<:Shaper:1140626664078983200> '),
+            discord.SelectOption(label="Вождь",emoji='<:Host:1140626674002702376>'),
+            discord.SelectOption(label="Хранитель",emoji='<:Ward:1140626643325562900>'),
+            discord.SelectOption(label="Тишина",emoji='<:Silence:1140626659955974275> '),
+            discord.SelectOption(label="Прилив",emoji='<:Tide:1140626648157388841> '),
+            discord.SelectOption(label="Рыло",emoji='<:Snout:1140626655535177798>'),
+            discord.SelectOption(label="Ребро",emoji='<:Rib:1140626669330235574> '),
+            discord.SelectOption(label="Око",emoji='<:Oko:1140626676766740480> '),
+            discord.SelectOption(label="Шпиль",emoji='<:Spire:1140626651252805633> ')
         ]
         super().__init__(placeholder="Выберите шаблон украшения шлема", min_values=1, max_values=16, options=options)
 
@@ -1347,16 +1356,16 @@ class SelectTrimPatternHelmet(discord.ui.Select):
 class SelectTrimMaterialHelmet(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Изумруд"),
-            discord.SelectOption(label="Редстоун"),
-            discord.SelectOption(label="Лазурит"),
-            discord.SelectOption(label="Аметист"),
-            discord.SelectOption(label="Кварц"),
-            discord.SelectOption(label="Незерит"),
-            discord.SelectOption(label="Алмаз"),
-            discord.SelectOption(label="Золото"),
-            discord.SelectOption(label="Железо"),
-            discord.SelectOption(label="Медь")
+            discord.SelectOption(label="Изумруд",emoji='<:Emerald:1140618895737241650>'),
+            discord.SelectOption(label="Редстоун",emoji='<:Redstone_Dust:1140618892528590930>'),
+            discord.SelectOption(label="Лазурит",emoji='<:Lapis_Lazuli:1140618881694707752>'),
+            discord.SelectOption(label="Аметист",emoji='<:Amethyst_Shard:1140618890817310961>'),
+            discord.SelectOption(label="Кварц",emoji='<:Nether_Quartz:1140618878775459851>'),
+            discord.SelectOption(label="Незерит",emoji='<:Netherite_Ingot:1140595704293756938>'),
+            discord.SelectOption(label="Алмаз",emoji='<:Diamond:1140600966752776213>'),
+            discord.SelectOption(label="Золото",emoji='<:Gold_Ingot:1140618886350389319>'),
+            discord.SelectOption(label="Железо",emoji='<:Iron_Ingot:1140618883611492453>'),
+            discord.SelectOption(label="Медь",emoji='<:Copper_Ingot:1140618887868731503>')
         ]
         super().__init__(placeholder="Выберите материал украшения шлема", min_values=1, max_values=10, options=options)
 
@@ -1375,22 +1384,22 @@ class SelectTrimMaterialHelmet(discord.ui.Select):
 class SelectTrimPatternChestplate(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Страж"),
-            discord.SelectOption(label="Вредина"),
-            discord.SelectOption(label="Дебри"),
-            discord.SelectOption(label="Берег"),
-            discord.SelectOption(label="Дюна"),
-            discord.SelectOption(label="Искатель"),
-            discord.SelectOption(label="Сборщик"),
-            discord.SelectOption(label="Скульптор"),
-            discord.SelectOption(label="Вождь"),
-            discord.SelectOption(label="Хранитель"),
-            discord.SelectOption(label="Тишина"),
-            discord.SelectOption(label="Прилив"),
-            discord.SelectOption(label="Рыло"),
-            discord.SelectOption(label="Ребро"),
-            discord.SelectOption(label="Око"),
-            discord.SelectOption(label="Шпиль")
+            discord.SelectOption(label="Страж",emoji='<:Sentry:1140626667598008380> '),
+            discord.SelectOption(label="Вредина",emoji='<:Vex:1140626646437728406>'),
+            discord.SelectOption(label="Дебри",emoji='<:Wild:1140626637512245309>'),
+            discord.SelectOption(label="Берег",emoji='<:Coast:1140626682483572736>'),
+            discord.SelectOption(label="Дюна",emoji='<:Dune:1140626678780014592>'),
+            discord.SelectOption(label="Искатель",emoji='<:Wayfinder:1140626640901246986>'),
+            discord.SelectOption(label="Сборщик",emoji='<:Raiser:1140626670785667182>'),
+            discord.SelectOption(label="Скульптор",emoji='<:Shaper:1140626664078983200> '),
+            discord.SelectOption(label="Вождь",emoji='<:Host:1140626674002702376>'),
+            discord.SelectOption(label="Хранитель",emoji='<:Ward:1140626643325562900>'),
+            discord.SelectOption(label="Тишина",emoji='<:Silence:1140626659955974275> '),
+            discord.SelectOption(label="Прилив",emoji='<:Tide:1140626648157388841> '),
+            discord.SelectOption(label="Рыло",emoji='<:Snout:1140626655535177798>'),
+            discord.SelectOption(label="Ребро",emoji='<:Rib:1140626669330235574> '),
+            discord.SelectOption(label="Око",emoji='<:Oko:1140626676766740480> '),
+            discord.SelectOption(label="Шпиль",emoji='<:Spire:1140626651252805633> ')
         ]
         super().__init__(placeholder="Выберите шаблон украшения нагрудника", min_values=1, max_values=16, options=options)
 
@@ -1409,16 +1418,16 @@ class SelectTrimPatternChestplate(discord.ui.Select):
 class SelectTrimMaterialChestplate(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Изумруд"),
-            discord.SelectOption(label="Редстоун"),
-            discord.SelectOption(label="Лазурит"),
-            discord.SelectOption(label="Аметист"),
-            discord.SelectOption(label="Кварц"),
-            discord.SelectOption(label="Незерит"),
-            discord.SelectOption(label="Алмаз"),
-            discord.SelectOption(label="Золото"),
-            discord.SelectOption(label="Железо"),
-            discord.SelectOption(label="Медь")
+            discord.SelectOption(label="Изумруд",emoji='<:Emerald:1140618895737241650>'),
+            discord.SelectOption(label="Редстоун",emoji='<:Redstone_Dust:1140618892528590930>'),
+            discord.SelectOption(label="Лазурит",emoji='<:Lapis_Lazuli:1140618881694707752>'),
+            discord.SelectOption(label="Аметист",emoji='<:Amethyst_Shard:1140618890817310961>'),
+            discord.SelectOption(label="Кварц",emoji='<:Nether_Quartz:1140618878775459851>'),
+            discord.SelectOption(label="Незерит",emoji='<:Netherite_Ingot:1140595704293756938>'),
+            discord.SelectOption(label="Алмаз",emoji='<:Diamond:1140600966752776213>'),
+            discord.SelectOption(label="Золото",emoji='<:Gold_Ingot:1140618886350389319>'),
+            discord.SelectOption(label="Железо",emoji='<:Iron_Ingot:1140618883611492453>'),
+            discord.SelectOption(label="Медь",emoji='<:Copper_Ingot:1140618887868731503>')
         ]
         super().__init__(placeholder="Выберите материал украшения нагрудника", min_values=1, max_values=10, options=options)
 
@@ -1437,22 +1446,22 @@ class SelectTrimMaterialChestplate(discord.ui.Select):
 class SelectTrimPatternLeggings(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Страж"),
-            discord.SelectOption(label="Вредина"),
-            discord.SelectOption(label="Дебри"),
-            discord.SelectOption(label="Берег"),
-            discord.SelectOption(label="Дюна"),
-            discord.SelectOption(label="Искатель"),
-            discord.SelectOption(label="Сборщик"),
-            discord.SelectOption(label="Скульптор"),
-            discord.SelectOption(label="Вождь"),
-            discord.SelectOption(label="Хранитель"),
-            discord.SelectOption(label="Тишина"),
-            discord.SelectOption(label="Прилив"),
-            discord.SelectOption(label="Рыло"),
-            discord.SelectOption(label="Ребро"),
-            discord.SelectOption(label="Око"),
-            discord.SelectOption(label="Шпиль")
+            discord.SelectOption(label="Страж",emoji='<:Sentry:1140626667598008380> '),
+            discord.SelectOption(label="Вредина",emoji='<:Vex:1140626646437728406>'),
+            discord.SelectOption(label="Дебри",emoji='<:Wild:1140626637512245309>'),
+            discord.SelectOption(label="Берег",emoji='<:Coast:1140626682483572736>'),
+            discord.SelectOption(label="Дюна",emoji='<:Dune:1140626678780014592>'),
+            discord.SelectOption(label="Искатель",emoji='<:Wayfinder:1140626640901246986>'),
+            discord.SelectOption(label="Сборщик",emoji='<:Raiser:1140626670785667182>'),
+            discord.SelectOption(label="Скульптор",emoji='<:Shaper:1140626664078983200> '),
+            discord.SelectOption(label="Вождь",emoji='<:Host:1140626674002702376>'),
+            discord.SelectOption(label="Хранитель",emoji='<:Ward:1140626643325562900>'),
+            discord.SelectOption(label="Тишина",emoji='<:Silence:1140626659955974275> '),
+            discord.SelectOption(label="Прилив",emoji='<:Tide:1140626648157388841> '),
+            discord.SelectOption(label="Рыло",emoji='<:Snout:1140626655535177798>'),
+            discord.SelectOption(label="Ребро",emoji='<:Rib:1140626669330235574> '),
+            discord.SelectOption(label="Око",emoji='<:Oko:1140626676766740480> '),
+            discord.SelectOption(label="Шпиль",emoji='<:Spire:1140626651252805633> ')
         ]
         super().__init__(placeholder="Выберите шаблон украшения понож", min_values=1, max_values=16, options=options)
 
@@ -1471,16 +1480,16 @@ class SelectTrimPatternLeggings(discord.ui.Select):
 class SelectTrimMaterialLeggings(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Изумруд"),
-            discord.SelectOption(label="Редстоун"),
-            discord.SelectOption(label="Лазурит"),
-            discord.SelectOption(label="Аметист"),
-            discord.SelectOption(label="Кварц"),
-            discord.SelectOption(label="Незерит"),
-            discord.SelectOption(label="Алмаз"),
-            discord.SelectOption(label="Золото"),
-            discord.SelectOption(label="Железо"),
-            discord.SelectOption(label="Медь")
+            discord.SelectOption(label="Изумруд",emoji='<:Emerald:1140618895737241650>'),
+            discord.SelectOption(label="Редстоун",emoji='<:Redstone_Dust:1140618892528590930>'),
+            discord.SelectOption(label="Лазурит",emoji='<:Lapis_Lazuli:1140618881694707752>'),
+            discord.SelectOption(label="Аметист",emoji='<:Amethyst_Shard:1140618890817310961>'),
+            discord.SelectOption(label="Кварц",emoji='<:Nether_Quartz:1140618878775459851>'),
+            discord.SelectOption(label="Незерит",emoji='<:Netherite_Ingot:1140595704293756938>'),
+            discord.SelectOption(label="Алмаз",emoji='<:Diamond:1140600966752776213>'),
+            discord.SelectOption(label="Золото",emoji='<:Gold_Ingot:1140618886350389319>'),
+            discord.SelectOption(label="Железо",emoji='<:Iron_Ingot:1140618883611492453>'),
+            discord.SelectOption(label="Медь",emoji='<:Copper_Ingot:1140618887868731503>')
         ]
         super().__init__(placeholder="Выберите материал украшения понож", min_values=1, max_values=10, options=options)
 
@@ -1499,22 +1508,22 @@ class SelectTrimMaterialLeggings(discord.ui.Select):
 class SelectTrimPatternBoots(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Страж"),
-            discord.SelectOption(label="Вредина"),
-            discord.SelectOption(label="Дебри"),
-            discord.SelectOption(label="Берег"),
-            discord.SelectOption(label="Дюна"),
-            discord.SelectOption(label="Искатель"),
-            discord.SelectOption(label="Сборщик"),
-            discord.SelectOption(label="Скульптор"),
-            discord.SelectOption(label="Вождь"),
-            discord.SelectOption(label="Хранитель"),
-            discord.SelectOption(label="Тишина"),
-            discord.SelectOption(label="Прилив"),
-            discord.SelectOption(label="Рыло"),
-            discord.SelectOption(label="Ребро"),
-            discord.SelectOption(label="Око"),
-            discord.SelectOption(label="Шпиль")
+            discord.SelectOption(label="Страж",emoji='<:Sentry:1140626667598008380> '),
+            discord.SelectOption(label="Вредина",emoji='<:Vex:1140626646437728406>'),
+            discord.SelectOption(label="Дебри",emoji='<:Wild:1140626637512245309>'),
+            discord.SelectOption(label="Берег",emoji='<:Coast:1140626682483572736>'),
+            discord.SelectOption(label="Дюна",emoji='<:Dune:1140626678780014592>'),
+            discord.SelectOption(label="Искатель",emoji='<:Wayfinder:1140626640901246986>'),
+            discord.SelectOption(label="Сборщик",emoji='<:Raiser:1140626670785667182>'),
+            discord.SelectOption(label="Скульптор",emoji='<:Shaper:1140626664078983200> '),
+            discord.SelectOption(label="Вождь",emoji='<:Host:1140626674002702376>'),
+            discord.SelectOption(label="Хранитель",emoji='<:Ward:1140626643325562900>'),
+            discord.SelectOption(label="Тишина",emoji='<:Silence:1140626659955974275> '),
+            discord.SelectOption(label="Прилив",emoji='<:Tide:1140626648157388841> '),
+            discord.SelectOption(label="Рыло",emoji='<:Snout:1140626655535177798>'),
+            discord.SelectOption(label="Ребро",emoji='<:Rib:1140626669330235574> '),
+            discord.SelectOption(label="Око",emoji='<:Oko:1140626676766740480> '),
+            discord.SelectOption(label="Шпиль",emoji='<:Spire:1140626651252805633> ')
         ]
         super().__init__(placeholder="Выберите шаблон украшения ботинок", min_values=1, max_values=16, options=options)
 
@@ -1533,16 +1542,16 @@ class SelectTrimPatternBoots(discord.ui.Select):
 class SelectTrimMaterialBoots(discord.ui.Select):
     def __init__(self):
         options=[
-            discord.SelectOption(label="Изумруд"),
-            discord.SelectOption(label="Редстоун"),
-            discord.SelectOption(label="Лазурит"),
-            discord.SelectOption(label="Аметист"),
-            discord.SelectOption(label="Кварц"),
-            discord.SelectOption(label="Незерит"),
-            discord.SelectOption(label="Алмаз"),
-            discord.SelectOption(label="Золото"),
-            discord.SelectOption(label="Железо"),
-            discord.SelectOption(label="Медь")
+            discord.SelectOption(label="Изумруд",emoji='<:Emerald:1140618895737241650>'),
+            discord.SelectOption(label="Редстоун",emoji='<:Redstone_Dust:1140618892528590930>'),
+            discord.SelectOption(label="Лазурит",emoji='<:Lapis_Lazuli:1140618881694707752>'),
+            discord.SelectOption(label="Аметист",emoji='<:Amethyst_Shard:1140618890817310961>'),
+            discord.SelectOption(label="Кварц",emoji='<:Nether_Quartz:1140618878775459851>'),
+            discord.SelectOption(label="Незерит",emoji='<:Netherite_Ingot:1140595704293756938>'),
+            discord.SelectOption(label="Алмаз",emoji='<:Diamond:1140600966752776213>'),
+            discord.SelectOption(label="Золото",emoji='<:Gold_Ingot:1140618886350389319>'),
+            discord.SelectOption(label="Железо",emoji='<:Iron_Ingot:1140618883611492453>'),
+            discord.SelectOption(label="Медь",emoji='<:Copper_Ingot:1140618887868731503>')
         ]
         super().__init__(placeholder="Выберите материал украшения ботинок", min_values=1, max_values=10, options=options)
 
@@ -1740,7 +1749,7 @@ class OrderSubmit(discord.ui.Button):
 # This interaction responses with a embed and select menu (line 219)
 class OrderNetherite(discord.ui.Button):
     def __init__(self):
-        super().__init__(style=discord.ButtonStyle.blurple, label="Выбрать незеритовые аналоги", custom_id="orderNetherite")
+        super().__init__(style=discord.ButtonStyle.blurple, label="Выбрать незеритовые аналоги", custom_id="orderNetherite",emoji='<:Netherite_Upgrade:1140599231355293766>')
 
     async def callback(self, interaction:discord.Interaction): 
         pq = 0
@@ -1762,7 +1771,7 @@ class OrderNetherite(discord.ui.Button):
 # This interaction responses with a modal where you can type your message (line 1204)
 class OrderComment(discord.ui.Button):
     def __init__(self):
-        super().__init__(style=discord.ButtonStyle.blurple, label="Добавить комментарий к заказу", custom_id="orderComment")
+        super().__init__(style=discord.ButtonStyle.blurple, label="Добавить комментарий к заказу", custom_id="orderComment",emoji='💬')
 
     async def callback(self, interaction:discord.Interaction): 
         await interaction.response.send_modal(orderCommentModal())
@@ -1773,7 +1782,7 @@ class OrderComment(discord.ui.Button):
 # The bot sends the enchantment select menus only for those items that the user has selected in first select (orderSelect) (lines 407 - 934)
 class SelectEnchantments(discord.ui.Button):
     def __init__(self):
-        super().__init__(style=discord.ButtonStyle.blurple, label="Выбрать зачарования", custom_id="orderEnchantments")
+        super().__init__(style=discord.ButtonStyle.blurple, label="Выбрать зачарования", custom_id="orderEnchantments",emoji='<:Enchanted_Book:1140597764326162503>')
 
     async def callback(self, interaction:discord.Interaction): 
         embedEnchantments= discord.Embed(title="Выберите зачарования товаров",color=discord.Colour.from_str('0x2366c4')) 
@@ -1806,15 +1815,15 @@ class SelectEnchantments(discord.ui.Button):
 # The bot sends select menus only for those items that the user has selected in first select (orderSelect) (lines 407 - 934)
 class SelectTrims(discord.ui.Button):
     def __init__(self):
-        super().__init__(style=discord.ButtonStyle.blurple, label="Выбрать украшения брони",custom_id="orderTrims")
+        super().__init__(style=discord.ButtonStyle.blurple, label="Выбрать украшения брони",custom_id="orderTrims",emoji='<:Tide_Armor_Trim:1140599228025012346>')
 
     async def callback(self, interaction:discord.Interaction): 
         embedTrims= discord.Embed(title="Выберите украшения брони",color=discord.Colour.from_str('0x2366c4')) 
         embedTrims.add_field(name="***Предупреждение!***",value="***Имейте в виду, что к одному элементу брони нельзя применить несколько украшений.*** Если в списке выбраны несколько несовместимых позиций для товара, кузнец сделает по товару на каждое выбранное украшение!"+'\n'+" Помните, что вы можете расписать необходимые украшения более подробно с помощью комментария к заказу.",inline=False)
-        
+        embedTrims.add_field(name='Создайте свой уникальный дизайн!', value='Воспользуйтесь сайтом armortrims.com чтобы собрать свой сет или сгенерировать случайный, а потом выберите понравившиеся шаблоны и материалы в соответсвующих списках.')
         
         if products[9]  == True or products[10]  == True or products[11]  == True or products[12]  == True or products[13]  == True:
-            await interaction.response.send_message(embed=embedTrims, ephemeral=True)
+            await interaction.response.send_message(embed=embedTrims, ephemeral=True, view=SelectTrimsUrl())
         else:
             embedNone = discord.Embed(title=":x: Вы не выбрали ни одного элемента брони!",color=discord.Colour.from_str('0x2366c4'))
             await interaction.response.send_message(embed=embedNone, ephemeral=True)
@@ -1942,13 +1951,13 @@ class ReadyOrder(discord.ui.Button):
 
             while n < len(orderInfoMessageIDs):
                 if getID.id == orderInfoMessageIDs[n]:
-                    orderInfoMessageStatus[n] = 3
+                    customer = client.get_user(orderInfoUserIDs[n])
+                    readyMessage = await customer.send(embed=discord.Embed(title="Ваш заказ готов!", color=discord.Colour.from_str('0x2366c4')),view=OrderPaybyCard())
+                    orderInfoMessageStatus[n] = readyMessage.id
                     with open('customers.txt','r+') as customerlistReady:
                         CostContentReady = customerlistReady.readlines()
                         print(CostContentReady)
                         k = 0
-                        customer = client.get_user(orderInfoUserIDs[n])
-
                         while k < len(CostContentReady):
                             CostContentLineReady = CostContentReady[k]
                             CostContentValueReady = CostContentLineReady.split()
@@ -1967,7 +1976,7 @@ class ReadyOrder(discord.ui.Button):
                         customerlistReady.seek(0)
                         customerlistReady.writelines(CostContentReady)
 
-                    await customer.send(embed=discord.Embed(title="Ваш заказ готов!", color=discord.Colour.from_str('0x2366c4')))
+                    
                     print("Order id:"+orderInfoMessageIDs[n].__str__()+" ready")
                     print("Customer: "+customer.name)
                     print("-------")
@@ -1989,7 +1998,13 @@ class ReadyOrder(discord.ui.Button):
         
         await interaction.edit_original_response(embed=embedReady,view=None)
 
+class PayByCard(discord.ui.Button):
+    def __init__(self):
+        super().__init__(style=discord.ButtonStyle.url, label="Оплатить заказ с карты",url='https://plasmorp.com/bank?to_card={7862}&amount={1}&message={test}')
 
+class SelectTrimsUrlButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(style=discord.ButtonStyle.url, label="ArmorTrims",url='https://armortrims.com/?h=16:1:10&c=16:1:10&l=16:1:10&b=16:1:10')
 
 
 
@@ -2399,6 +2414,15 @@ class OrderTinkerViewReady(discord.ui.View):
     def __init__(self, timeout = None):
         super().__init__(timeout=timeout)
         
+class OrderPaybyCard(discord.ui.View):
+    def __init__(self, timeout = None):
+        super().__init__(timeout=timeout)
+        self.add_item(PayByCard())
+
+class SelectTrimsUrl(discord.ui.View):
+    def __init__(self, timeout = None):
+        super().__init__(timeout=timeout)
+        self.add_item(SelectTrimsUrlButton())
 
 
-client.run("YOUR TOKEN")
+client.run("your token here")
