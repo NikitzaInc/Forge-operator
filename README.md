@@ -13,5 +13,5 @@ I wouldn't have been able to make this bot without the help of github of [Martin
 
 Sorry for the bad translation in some places, english is not my native language and sometimes i can be wrong.
 If you don't understand some parts of my code or how smth works, feel free to contact me: nikitzacompany@gmail.com or @nikitzainc on Discord.
-I understand that my code sometimes looks very stupid, but I don't understand how to make some things better.
+I understand that my code sometimes looks very stupid, but I don't understand how to make some things better. This is actually my first python project.
 Full description about how bot works you can find in first comment in main.py
